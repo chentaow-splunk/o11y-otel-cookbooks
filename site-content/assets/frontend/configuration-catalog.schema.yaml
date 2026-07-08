@@ -1,0 +1,18 @@
+schemaVersion: observability-playbooks.frontend-config-catalog-schema/v1
+generatedCatalog:
+  path: assets/frontend/example-backend-catalog.yaml
+  requiredTopLevelKeys:
+    - sourceRepository
+    - sourceCommit
+    - configurationAssets
+  assetRequiredKeys:
+    - sourcePath
+    - rawPath
+    - kind
+  optionalAssetKeys:
+    - recipePath
+frontendContract:
+  sourcePath: Path of the YAML file inside the examples backend repository.
+  rawPath: Site-relative path that can be fetched from the published MkDocs site.
+  kind: Best-effort asset type used for filtering and UI grouping.
+  recipePath: Generated cookbook path associated with the YAML file when known.
