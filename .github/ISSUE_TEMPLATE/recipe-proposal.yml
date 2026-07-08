@@ -1,0 +1,73 @@
+name: Recipe proposal
+description: Propose a new scenario-based observability recipe.
+title: "[Recipe]: "
+labels:
+  - recipe
+  - proposal
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for implementation recipes, deployment blueprints, and scenario-specific runbooks. Do not paste real secrets, tokens, customer data, or private endpoint values.
+        You can attach source `.txt`, `.md`, `.pdf`, or `.docx` files to the issue after it is created. The documentation site also includes an AI-assisted draft workflow on the "Propose a Recipe" page.
+  - type: textarea
+    id: scenario
+    attributes:
+      label: Scenario
+      description: Describe the workload, platform, runtime, telemetry goal, and target operator.
+      placeholder: "Example: Kubernetes services need baseline APM coverage using OBI eBPF before teams add language SDK instrumentation."
+    validations:
+      required: true
+  - type: textarea
+    id: installation
+    attributes:
+      label: Installation instructions
+      description: Provide ordered deployment steps or commands. Use placeholders for realms, tokens, clusters, namespaces, and service names.
+      render: bash
+      placeholder: |
+        helm upgrade --install splunk-otel-collector ...
+    validations:
+      required: true
+  - type: textarea
+    id: configuration
+    attributes:
+      label: Proposed configuration file
+      description: Add the Collector config, Helm values, Kubernetes manifest, receiver config, annotations, or environment variables.
+      render: yaml
+      placeholder: |
+        splunkObservability:
+          realm: <realm>
+          accessToken: <access_token>
+    validations:
+      required: true
+  - type: textarea
+    id: source_material
+    attributes:
+      label: Source material
+      description: Link to or describe any uploaded TXT, PDF, DOCX, architecture notes, implementation notes, or diagrams that should be parsed into the recipe standard.
+      placeholder: "Attach files after creating the issue, then describe what each file contains."
+    validations:
+      required: false
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation steps
+      description: Explain how reviewers can confirm traces, metrics, logs, profiles, or related content appear in Splunk Observability Cloud.
+    validations:
+      required: true
+  - type: textarea
+    id: official_docs
+    attributes:
+      label: Official documentation
+      description: Link to official Splunk documentation and any upstream docs needed to verify behavior.
+      placeholder: |
+        - https://help.splunk.com/en/splunk-observability-cloud/...
+    validations:
+      required: true
+  - type: textarea
+    id: operations
+    attributes:
+      label: Operational notes
+      description: Document tradeoffs, scaling limits, security requirements, rollback, and known limitations.
+    validations:
+      required: true

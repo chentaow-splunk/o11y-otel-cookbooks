@@ -1,0 +1,61 @@
+name: Cookbook maintenance
+
+on:
+  workflow_dispatch:
+    inputs:
+      online_version_check:
+        description: Query package registries for latest Python and NPM versions
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+  schedule:
+    - cron: "0 13 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cookbook-maintenance
+  cancel-in-progress: false
+
+jobs:
+  maintenance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout renderer
+        uses: actions/checkout@v4
+
+      - name: Checkout examples backend
+        uses: actions/checkout@v4
+        with:
+          repository: chentaow-splunk/splunk-opentelemetry-examples
+          ref: codex/collector-data-processing-cookbooks
+          path: splunk-opentelemetry-examples
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install MkDocs
+        run: pip install mkdocs-material
+
+      - name: Run maintenance checks
+        run: |
+          if [ "${{ github.event.inputs.online_version_check || 'false' }}" = "true" ]; then
+            python -m scripts.maintenance.run_all --source splunk-opentelemetry-examples --online-version-check
+          else
+            python -m scripts.maintenance.run_all --source splunk-opentelemetry-examples
+          fi
+
+      - name: Upload maintenance reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cookbook-maintenance-reports
+          path: maintenance-reports/
+          if-no-files-found: warn

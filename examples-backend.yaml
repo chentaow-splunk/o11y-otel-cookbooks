@@ -1,0 +1,36 @@
+# Content backend contract for this MkDocs renderer.
+#
+# The examples repository owns runnable example source content. This repository
+# owns MkDocs structure, scenario navigation, generated wrappers, and frontend
+# catalogs used to render or select configuration assets.
+sourceRepository: https://github.com/chentaow-splunk/splunk-opentelemetry-examples/tree/codex/collector-data-processing-cookbooks
+localPath: splunk-opentelemetry-examples
+rendererContentPath: site-content
+renderScript: scripts/render_examples_site.py
+rendering:
+  markdownMode: "generate MkDocs pages from backend Markdown at build time"
+  rendererContentMode: "merge local site-content pages and assets into generated docs"
+  generatedDocsDir: .generated/docs
+  committedBackendMarkdown: false
+  committedRendererMarkdown: true
+  copyLinkedImages: true
+  copyYamlAssetsTo: .generated/docs/assets/example-backend
+outputs:
+  scenarioIndex: .generated/docs/assets/scenario-index.json
+  frontendYamlCatalog: .generated/docs/assets/frontend/example-backend-catalog.yaml
+  aiAssistantEndpoint: /api/scenario-assistant
+  rendererOwnedPages:
+    - site-content/index.md
+    - site-content/contributing/
+ownership:
+  examplesRepository:
+    - runnable source examples
+    - scenario Markdown bodies
+    - example-local YAML files
+  cookbookRepository:
+    - MkDocs navigation
+    - recipe categorization
+    - homepage scenario finder
+    - recipe proposal workflow
+    - frontend configuration catalogs
+    - production review standards

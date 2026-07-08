@@ -1,0 +1,63 @@
+site_name: Splunk Observability Playbooks
+site_description: Scenario-based rendering of Splunk OpenTelemetry examples as implementation playbooks.
+site_author: Observability Platform Team
+docs_dir: .generated/docs
+
+nav:
+  - Playbooks List: index.md
+  - OpenTelemetry Instrumentation Examples: opentelemetry-instrumentation-examples/index.md
+  - OpenTelemetry Collector Examples: opentelemetry-collector-examples/index.md
+  - Contribution:
+      - Overview: contributing/index.md
+      - Recipe Standard: contributing/recipe-standard.md
+      - Examples Backend: contributing/examples-backend.md
+      - Architecture and Maintenance Plan: contributing/maintenance-plan.md
+      - Maintenance Automation: contributing/maintenance-automation.md
+      - AI Assistant Backend: contributing/ai-assistant.md
+      - Frontend Configuration Catalog: contributing/configuration-catalog.md
+      - Propose a Recipe: contributing/propose-recipe.md
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - content.code.copy
+    - content.tabs.link
+    - search.highlight
+    - search.suggest
+  palette:
+    - scheme: default
+      primary: black
+      accent: green
+  font:
+    text: Inter
+    code: Roboto Mono
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/scenario-assistant.js
+  - javascripts/runbook-proposal.js
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - search
