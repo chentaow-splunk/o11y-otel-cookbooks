@@ -58,10 +58,11 @@ The generated `.generated/docs/` tree is disposable. Do not edit generated Markd
 2. `scripts/render_examples_site.py` discovers `README.md` files under `collector/` and `instrumentation/`.
 3. Each backend README becomes a generated MkDocs page with a backend-source note and rewritten local links.
 4. YAML assets under the rendered backend categories are copied into `.generated/docs/assets/example-backend/`.
-5. The renderer generates `assets/scenario-index.json` for scenario search and assistant grounding.
-6. The renderer generates `assets/frontend/example-backend-catalog.yaml` for product frontend YAML pickers.
-7. Renderer-owned pages from `site-content/` are overlaid into `.generated/docs/`.
-8. MkDocs builds the final static site into `site/`.
+5. The renderer assigns support status metadata: Splunk-maintained, AI-generated beta, or community-supported.
+6. The renderer generates `assets/scenario-index.json` for scenario search and assistant grounding.
+7. The renderer generates `assets/frontend/example-backend-catalog.yaml` for product frontend YAML pickers.
+8. Renderer-owned pages from `site-content/` are overlaid into `.generated/docs/`.
+9. MkDocs builds the final static site into `site/`.
 
 ## Ownership Rules
 
@@ -80,7 +81,7 @@ The maintenance suite lives under `scripts/maintenance/`.
 
 | Check | Script | Purpose |
 | --- | --- | --- |
-| Render check | `render_check.py` | Renders backend examples, runs `mkdocs build --strict`, validates generated routes, validates scenario index, and validates frontend YAML catalog paths. |
+| Render check | `render_check.py` | Renders backend examples, runs `mkdocs build --strict`, validates generated routes, validates support status metadata, validates scenario index, and validates frontend YAML catalog paths. |
 | Security scan | `security_scan.py` | Scans rendered backend categories and renderer-owned files for likely secrets, unsafe endpoints, insecure TLS flags, and Collector pipeline safety issues. |
 | Content review | `content_review.py` | Reviews backend cookbook README files against the recipe standard without forcing every example into one exact heading order. |
 | Assistant eval | `assistant_eval.py` | Verifies offline or live assistant recommendations resolve to generated cookbook links. |

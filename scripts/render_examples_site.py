@@ -15,6 +15,7 @@ import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
+from html import escape as html_escape
 from pathlib import Path, PurePosixPath
 from urllib.parse import unquote
 
@@ -32,6 +33,41 @@ BACKEND_CATEGORIES = {
         "opentelemetry-instrumentation-examples",
     ),
 }
+AI_GENERATED_COOKBOOK_DIRS = {
+    "collector/filter-noisy-telemetry-before-export",
+    "collector/probabilistic-sampling-before-export",
+    "collector/prometheus-scrape-kubernetes-discovery",
+    "collector/prometheus-scrape-to-splunk",
+    "collector/redact-logs-before-splunk-export",
+    "collector/redact-sensitive-data-before-export",
+    "collector/tail-sampling-error-and-latency-traces",
+    "collector/transform-normalize-telemetry-before-export",
+}
+SUPPORT_PROFILES = {
+    "splunk-maintained": {
+        "label": "Maintained by Splunk",
+        "source": "Splunk OpenTelemetry examples",
+        "description": (
+            "Rendered from the Splunk OpenTelemetry examples source set. "
+            "Use official Splunk documentation as the source of truth for product behavior and support."
+        ),
+    },
+    "ai-generated-beta": {
+        "label": "Experimental / AI-generated",
+        "source": "AI-assisted cookbook skill",
+        "description": (
+            "Generated with AI-assisted cookbook skills and validation checks. "
+            "Treat as beta implementation guidance that requires review before customer use."
+        ),
+    },
+    "community-supported": {
+        "label": "Community-supported",
+        "source": "Community contribution",
+        "description": (
+            "Submitted by contributors and community-supported unless maintainers promote it to another status."
+        ),
+    },
+}
 NOTE = (
     "This page is generated at build time from the local "
     "`splunk-opentelemetry-examples` backend checkout. Edit the backend example "
@@ -48,6 +84,10 @@ class Page:
     subsection: str
     summary: str
     tags: list[str]
+    support_status: str
+    support_label: str
+    support_description: str
+    support_source: str
 
 
 def parse_args() -> argparse.Namespace:
@@ -79,6 +119,47 @@ def normalized_text(text: str) -> str:
 def write_text(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(normalized_text(text), encoding="utf-8")
+
+
+def parse_front_matter(markdown: str) -> tuple[dict[str, str], str]:
+    if not markdown.startswith("---\n"):
+        return {}, markdown
+    end = markdown.find("\n---\n", 4)
+    if end == -1:
+        return {}, markdown
+
+    metadata: dict[str, str] = {}
+    for raw in markdown[4:end].splitlines():
+        if ":" not in raw:
+            continue
+        key, value = raw.split(":", 1)
+        metadata[key.strip().lower()] = value.strip().strip("\"'")
+    return metadata, markdown[end + 5 :].lstrip("\n")
+
+
+def support_profile(source_path: str, metadata: dict[str, str]) -> dict[str, str]:
+    requested = metadata.get("cookbook_status", "").strip().lower()
+    if requested in SUPPORT_PROFILES:
+        return {"status": requested, **SUPPORT_PROFILES[requested]}
+
+    source_dir = PurePosixPath(source_path).parent.as_posix()
+    if source_dir in AI_GENERATED_COOKBOOK_DIRS:
+        return {"status": "ai-generated-beta", **SUPPORT_PROFILES["ai-generated-beta"]}
+    return {"status": "splunk-maintained", **SUPPORT_PROFILES["splunk-maintained"]}
+
+
+def support_badge_block(profile: dict[str, str]) -> str:
+    status = html_escape(profile["status"])
+    label = html_escape(profile["label"])
+    description = html_escape(profile["description"])
+    source = html_escape(profile["source"])
+    return (
+        f'<div class="cookbook-status-banner cookbook-status-banner--{status}">\n'
+        f'  <span class="support-pill support-pill--{status}">{label}</span>\n'
+        f'  <p>{description}</p>\n'
+        f'  <small>Source classification: <code>{source}</code>.</small>\n'
+        f'</div>\n\n'
+    )
 
 
 def git_revision(path: Path) -> str:
@@ -307,20 +388,36 @@ def render_page(
     source_to_output: dict[str, Path],
     source_commit: str,
 ) -> Page:
-    source_text = read_text(source_root / source_path)
+    metadata, source_text = parse_front_matter(read_text(source_root / source_path))
+    support = support_profile(source_path, metadata)
     title, body = first_heading(source_text, title_from_path(source_path))
     section, subsection, _ = classify(source_path)
     rewritten = rewrite_links(body, source_root, output_root, source_path, output_path, source_to_output)
     summary = summary_from_body(rewritten)
-    tags = tags_for(source_path, title, section, subsection)
+    tags = sorted(
+        set(tags_for(source_path, title, section, subsection) + [support["status"], support["label"].lower()])
+    )
     rendered = (
         f"# {title}\n\n"
+        f"{support_badge_block(support)}"
         f"> Backend source: `{source_path}` at `{source_commit}`.\n\n"
         f"> {NOTE}\n\n"
         f"{rewritten.lstrip()}"
     )
     write_text(output_root / output_path, rendered)
-    return Page(source_path, output_path, title, section, subsection, summary, tags)
+    return Page(
+        source_path,
+        output_path,
+        title,
+        section,
+        subsection,
+        summary,
+        tags,
+        support["status"],
+        support["label"],
+        support["description"],
+        support["source"],
+    )
 
 
 def yaml_kind(path: Path) -> str:
@@ -383,11 +480,11 @@ def render_home(output_root: Path, pages: list[Page], source_commit: str) -> Non
     for page in sorted(pages, key=lambda item: (item.section, item.subsection, item.title.lower())):
         url = page_url(page.output_path)
         rows.append(
-            f"| [{page.title}]({url}) | {category_label(page)} | `{page.source_path}` |"
+            f"| [{page.title}]({url}) | {page.support_label} | {category_label(page)} | `{page.source_path}` |"
         )
         cards.append(
             f'<a class="scenario-card" href="{url}" data-search="{page.title} {page.section} {page.subsection} {" ".join(page.tags)}">'
-            f"<strong>{page.title}</strong><span>{category_label(page)}</span></a>"
+            f"<strong>{page.title}</strong><span>{page.support_label}</span><span>{category_label(page)}</span></a>"
         )
     body = "\n".join(
         [
@@ -405,8 +502,8 @@ def render_home(output_root: Path, pages: list[Page], source_commit: str) -> Non
             "",
             "## Scenario Index",
             "",
-            "| Scenario | Category | Backend source |",
-            "| --- | --- | --- |",
+            "| Scenario | Status | Category | Backend source |",
+            "| --- | --- | --- | --- |",
             *rows,
         ]
     )
@@ -427,9 +524,9 @@ def render_category_indexes(output_root: Path, pages: list[Page]) -> list[Path]:
         section_pages = [page for page in pages if page.section == section]
         if not section_pages:
             continue
-        lines = [f"# {section}", "", "| Scenario | Backend source |", "| --- | --- |"]
+        lines = [f"# {section}", "", "| Scenario | Status | Backend source |", "| --- | --- | --- |"]
         for page in sorted(section_pages, key=lambda item: (item.subsection, item.title.lower())):
-            lines.append(f"| [{page.title}]({posixpath.relpath(page.output_path.as_posix(), start=index_path.parent.as_posix())}) | `{page.source_path}` |")
+            lines.append(f"| [{page.title}]({posixpath.relpath(page.output_path.as_posix(), start=index_path.parent.as_posix())}) | {page.support_label} | `{page.source_path}` |")
         write_text(output_root / index_path, "\n".join(lines))
         index_paths.append(index_path)
 
@@ -438,9 +535,9 @@ def render_category_indexes(output_root: Path, pages: list[Page]) -> list[Path]:
             continue
         base = Path(classify(items[0].source_path)[2]).parent
         index_path = base / "index.md"
-        lines = [f"# {subsection}", "", "| Scenario | Backend source |", "| --- | --- |"]
+        lines = [f"# {subsection}", "", "| Scenario | Status | Backend source |", "| --- | --- | --- |"]
         for page in sorted(items, key=lambda item: item.title.lower()):
-            lines.append(f"| [{page.title}]({posixpath.relpath(page.output_path.as_posix(), start=index_path.parent.as_posix())}) | `{page.source_path}` |")
+            lines.append(f"| [{page.title}]({posixpath.relpath(page.output_path.as_posix(), start=index_path.parent.as_posix())}) | {page.support_label} | `{page.source_path}` |")
         write_text(output_root / index_path, "\n".join(lines))
         index_paths.append(index_path)
     return index_paths
@@ -448,11 +545,14 @@ def render_category_indexes(output_root: Path, pages: list[Page]) -> list[Path]:
 
 def render_catalogs(output_root: Path, pages: list[Page], assets: list[dict[str, str]], source_commit: str) -> None:
     categories = sorted({category_label(page) for page in pages})
+    support_statuses = [{"status": key, **value} for key, value in SUPPORT_PROFILES.items()]
+    page_by_output = {page.output_path.as_posix(): page for page in pages}
     scenario_index = {
         "generatedFrom": SOURCE_REPO,
         "sourceCommit": source_commit,
         "scenarioCount": len(pages),
         "categories": categories,
+        "supportStatuses": support_statuses,
         "scenarios": [
             {
                 "title": page.title,
@@ -461,6 +561,10 @@ def render_catalogs(output_root: Path, pages: list[Page], assets: list[dict[str,
                 "summary": page.summary,
                 "tags": page.tags,
                 "sourcePath": page.source_path,
+                "supportStatus": page.support_status,
+                "supportLabel": page.support_label,
+                "supportDescription": page.support_description,
+                "supportSource": page.support_source,
             }
             for page in sorted(pages, key=lambda item: item.title.lower())
         ],
@@ -478,6 +582,10 @@ def render_catalogs(output_root: Path, pages: list[Page], assets: list[dict[str,
         lines.append(f'    kind: "{asset["kind"]}"')
         if "recipePath" in asset:
             lines.append(f'    recipePath: "{asset["recipePath"]}"')
+            page = page_by_output.get(asset["recipePath"])
+            if page:
+                lines.append(f'    supportStatus: "{page.support_status}"')
+                lines.append(f'    supportLabel: "{page.support_label}"')
     write_text(output_root / "assets/frontend/example-backend-catalog.yaml", "\n".join(lines))
 
 

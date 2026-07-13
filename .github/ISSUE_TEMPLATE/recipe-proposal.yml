@@ -10,6 +10,16 @@ body:
       value: |
         Use this form for implementation recipes, deployment blueprints, and scenario-specific runbooks. Do not paste real secrets, tokens, customer data, or private endpoint values.
         You can attach source `.txt`, `.md`, `.pdf`, or `.docx` files to the issue after it is created. The documentation site also includes an AI-assisted draft workflow on the "Propose a Recipe" page.
+        New external submissions are classified as community-supported by default. Maintainers can reclassify support status only after review.
+  - type: dropdown
+    id: support_status
+    attributes:
+      label: Support status
+      description: New user-submitted recipes should use the community-supported status.
+      options:
+        - Community-supported
+    validations:
+      required: true
   - type: textarea
     id: scenario
     attributes:

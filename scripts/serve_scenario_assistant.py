@@ -78,6 +78,10 @@ class ScenarioDoc:
     source_path: str
     summary: str
     body: str
+    support_status: str
+    support_label: str
+    support_description: str
+    support_source: str
 
     @property
     def embedding_text(self) -> str:
@@ -85,6 +89,7 @@ class ScenarioDoc:
         return (
             f"Title: {self.title}\n"
             f"Category: {self.category}\n"
+            f"Support status: {self.support_label}\n"
             f"Source path: {self.source_path}\n"
             f"Summary: {self.summary}\n"
             f"Example content:\n{body}"
@@ -99,6 +104,10 @@ class ScenarioDoc:
             "sourcePath": self.source_path,
             "summary": self.summary,
             "excerpt": self.body[:1800],
+            "supportStatus": self.support_status,
+            "supportLabel": self.support_label,
+            "supportDescription": self.support_description,
+            "supportSource": self.support_source,
         }
 
 
@@ -189,6 +198,10 @@ def load_scenarios(generated_docs: Path, examples_root: Path) -> tuple[str, list
                 source_path=source_path,
                 summary=str(scenario.get("summary") or ""),
                 body=body,
+                support_status=str(scenario.get("supportStatus") or "splunk-maintained"),
+                support_label=str(scenario.get("supportLabel") or "Maintained by Splunk"),
+                support_description=str(scenario.get("supportDescription") or ""),
+                support_source=str(scenario.get("supportSource") or ""),
             )
         )
 
@@ -276,7 +289,7 @@ class ScenarioKnowledgeBase:
         self._vectors: list[list[float]] | None = None
         self._cache_key = cache_key(source_commit, embedding_model, docs)
 
-    def embeddings(self, api_key: str) -> list[list[float]]:
+    def embeddings(self, api_key: str, persist: bool = True) -> list[list[float]]:
         if self._vectors is not None:
             return self._vectors
 
@@ -288,27 +301,34 @@ class ScenarioKnowledgeBase:
                     return self._vectors
 
         vectors = embed_texts([doc.embedding_text for doc in self.docs], api_key, self.embedding_model)
-        self.cache_path.parent.mkdir(parents=True, exist_ok=True)
-        self.cache_path.write_text(
-            json.dumps(
-                {
-                    "cacheKey": self._cache_key,
-                    "sourceCommit": self.source_commit,
-                    "embeddingModel": self.embedding_model,
-                    "generatedAt": int(time.time()),
-                    "vectors": vectors,
-                }
-            ),
-            encoding="utf-8",
-        )
-        self._vectors = vectors
+        if persist:
+            self.cache_path.parent.mkdir(parents=True, exist_ok=True)
+            self.cache_path.write_text(
+                json.dumps(
+                    {
+                        "cacheKey": self._cache_key,
+                        "sourceCommit": self.source_commit,
+                        "embeddingModel": self.embedding_model,
+                        "generatedAt": int(time.time()),
+                        "vectors": vectors,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            self._vectors = vectors
         return vectors
 
-    def semantic_candidates(self, question: str, api_key: str, limit: int = 12) -> list[ScenarioDoc]:
+    def semantic_candidates(
+        self,
+        question: str,
+        api_key: str,
+        limit: int = 12,
+        persist_embeddings: bool = True,
+    ) -> list[ScenarioDoc]:
         query_vector = embed_texts([question], api_key, self.embedding_model)[0]
         scored = [
             (cosine(query_vector, vector), doc)
-            for vector, doc in zip(self.embeddings(api_key), self.docs)
+            for vector, doc in zip(self.embeddings(api_key, persist=persist_embeddings), self.docs)
         ]
         scored.sort(key=lambda item: item[0], reverse=True)
         return [doc for _, doc in scored[:limit]]
@@ -414,6 +434,10 @@ def ask_openai(question: str, candidates: list[ScenarioDoc], api_key: str, model
                 "url": doc.url,
                 "category": doc.category,
                 "sourcePath": doc.source_path,
+                "supportStatus": doc.support_status,
+                "supportLabel": doc.support_label,
+                "supportDescription": doc.support_description,
+                "supportSource": doc.support_source,
                 "why": str(item.get("why") or ""),
             }
         )
@@ -451,6 +475,7 @@ def make_handler(kb: ScenarioKnowledgeBase, site_dir: Path, model: str) -> type[
                         "scenarioCount": len(kb.docs),
                         "sourceCommit": kb.source_commit,
                         "openaiConfigured": bool(os.environ.get("OPENAI_API_KEY")),
+                        "acceptsRequestApiKey": True,
                         "model": model,
                         "embeddingModel": kb.embedding_model,
                     },
@@ -463,30 +488,32 @@ def make_handler(kb: ScenarioKnowledgeBase, site_dir: Path, model: str) -> type[
                 self.send_error(404)
                 return
 
-            api_key = os.environ.get("OPENAI_API_KEY")
-            if not api_key:
-                self.send_json(
-                    503,
-                    {
-                        "error": (
-                            "OPENAI_API_KEY is not set on the assistant backend. "
-                            "Run this server with the key in the server environment."
-                        )
-                    },
-                )
-                return
-
             try:
                 length = int(self.headers.get("Content-Length") or "0")
                 request_body = self.rfile.read(length).decode("utf-8")
                 payload = json.loads(request_body or "{}")
                 question = str(payload.get("question") or "").strip()
+                request_api_key = str(payload.get("apiKey") or "").strip()
+                api_key = request_api_key or os.environ.get("OPENAI_API_KEY")
+                if not api_key:
+                    raise AssistantError(
+                        (
+                            "OPENAI_API_KEY is not set on the assistant backend. "
+                            "Enter an OpenAI API key in the assistant form for a one-request use, "
+                            "or run this server with the key in the server environment."
+                        ),
+                        status=503,
+                    )
                 if not question:
                     raise AssistantError("Question is required.", status=400)
                 if len(question) > 4000:
                     raise AssistantError("Question is too long. Keep it under 4000 characters.", status=400)
 
-                candidates = kb.semantic_candidates(question, api_key)
+                candidates = kb.semantic_candidates(
+                    question,
+                    api_key,
+                    persist_embeddings=not bool(request_api_key),
+                )
                 answer = ask_openai(question, candidates, api_key, model)
                 answer["sourceCommit"] = kb.source_commit
                 self.send_json(200, answer)

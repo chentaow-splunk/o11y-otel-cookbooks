@@ -15,7 +15,11 @@
     status: root.querySelector("[data-runbook-status]"),
   };
 
-  const recipeStandard = `# <Scenario Name>
+  const recipeStandard = `---
+cookbook_status: community-supported
+---
+
+# <Scenario Name>
 
 ## Scenario
 ## Architecture Overview
@@ -73,6 +77,7 @@ Return Markdown only using exactly this standard:
 ${recipeStandard}
 
 Requirements:
+- Keep the front matter and use \`cookbook_status: community-supported\` for user-submitted recipes unless maintainers explicitly change it.
 - The Scenario section must state platform, workload, telemetry goal, and when to use the recipe.
 - Installation Instructions must be ordered and use placeholders for secrets, realms, cluster names, namespaces, and service names.
 - Proposed Configuration File must contain YAML or clearly state "Needs validation: configuration file not provided."
@@ -87,7 +92,11 @@ ${sourceParts.join("\\n\\n") || "No source material provided."}`;
   }
 
   function fallbackDraft() {
-    return `# Scenario Name
+    return `---
+cookbook_status: community-supported
+---
+
+# Scenario Name
 
 ## Scenario
 
@@ -124,7 +133,7 @@ Needs validation: summarize the workload, platform, runtime, telemetry goal, and
 
 ## Validation
 
-1. Confirm the collector or instrumented workload is running.
+1. Confirm the collector, instrumentation, or receiver is running.
 2. Check logs for export errors.
 3. Verify telemetry appears in Splunk Observability Cloud.
 4. Confirm resource attributes such as \`service.name\` and \`deployment.environment\`.

@@ -6,7 +6,7 @@ This repository now includes concrete automation for keeping the cookbook render
 
 | Automation | Location | Purpose |
 | --- | --- | --- |
-| Render check | `scripts/maintenance/render_check.py` | Renders the backend examples, runs `mkdocs build --strict`, validates `scenario-index.json`, and validates the frontend YAML catalog. |
+| Render check | `scripts/maintenance/render_check.py` | Renders the backend examples, runs `mkdocs build --strict`, validates `scenario-index.json`, validates support status metadata, and validates the frontend YAML catalog. |
 | Security scan | `scripts/maintenance/security_scan.py` | Scans renderer-owned files plus the rendered backend `collector/` and `instrumentation/` categories for likely secrets, unsafe endpoints, insecure TLS flags, and Collector pipeline safety issues. |
 | Content review | `scripts/maintenance/content_review.py` | Reviews rendered backend README files against the recipe standard without requiring every upstream example to use identical headings. |
 | Assistant evaluation | `scripts/maintenance/assistant_eval.py` | Checks that offline or live assistant recommendations resolve to generated cookbook URLs. |
@@ -55,7 +55,7 @@ Reports are written to `maintenance-reports/` and ignored by git.
 
 | Report | Use |
 | --- | --- |
-| `render-check.md` / `render-check.json` | Build, route, scenario index, and catalog integrity. |
+| `render-check.md` / `render-check.json` | Build, route, support status, scenario index, and catalog integrity. |
 | `security-scan.md` / `security-scan.json` | Secret and operational-risk findings. |
 | `content-review.md` / `content-review.json` | Recipe-standard coverage by backend cookbook. |
 | `assistant-eval.md` / `assistant-eval.json` | Assistant routing checks and returned cookbook links. |

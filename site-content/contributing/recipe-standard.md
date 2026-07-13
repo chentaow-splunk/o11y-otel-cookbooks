@@ -7,6 +7,10 @@ Every runbook should be easy to scan, compare, review, and operate. The standard
 Use this order for new first-party recipes:
 
 ```markdown
+---
+cookbook_status: community-supported
+---
+
 # Scenario Name
 
 ## Scenario
@@ -21,6 +25,26 @@ Use this order for new first-party recipes:
 ## Security and Operations Notes
 ## Official Documentation
 ```
+
+## Support Status
+
+Every rendered cookbook receives one support status. The renderer uses this status in the homepage filters, scenario index, AI recommendations, generated page banner, and frontend YAML catalog.
+
+| Status | How it is assigned | Reader expectation |
+| --- | --- | --- |
+| `splunk-maintained` | Default for examples rendered from the Splunk OpenTelemetry examples source set unless overridden. | Treat as Splunk-maintained example content, while using official Splunk documentation as the product source of truth. |
+| `ai-generated-beta` | Assigned by renderer path rules for cookbooks generated with AI-assisted cookbook skills. | Treat as beta guidance that needs human review before customer use. |
+| `community-supported` | Required front matter for new external submissions. | Treat as community-supported until maintainers promote or reclassify it. |
+
+For new community submissions, put this front matter at the top of the backend `README.md`:
+
+```yaml
+---
+cookbook_status: community-supported
+---
+```
+
+Do not use status labels to imply product support beyond what official Splunk documentation states.
 
 ## Section Requirements
 
@@ -41,6 +65,10 @@ Use this order for new first-party recipes:
 ## Markdown Template
 
 ````markdown
+---
+cookbook_status: community-supported
+---
+
 # <Scenario Name>
 
 ## Scenario

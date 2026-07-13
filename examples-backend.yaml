@@ -34,3 +34,16 @@ ownership:
     - recipe proposal workflow
     - frontend configuration catalogs
     - production review standards
+supportStatus:
+  defaultBackendStatus: splunk-maintained
+  aiGeneratedStatus: ai-generated-beta
+  communitySubmissionFrontMatter: "cookbook_status: community-supported"
+  generatedFields:
+    scenarioIndex:
+      - supportStatus
+      - supportLabel
+      - supportDescription
+      - supportSource
+    frontendYamlCatalog:
+      - supportStatus
+      - supportLabel

@@ -18,6 +18,8 @@ Each generated entry includes:
 | `rawPath` | Site-relative path the frontend can fetch to load the YAML file. |
 | `kind` | Best-effort type classification such as `collector-config`, `helm-values`, `kubernetes-manifest`, or `yaml-config`. |
 | `recipePath` | Generated recipe page associated with the YAML file when a nearby backend README can be resolved. |
+| `supportStatus` | Machine-readable support classification inherited from the associated cookbook when known. |
+| `supportLabel` | Human-readable support label inherited from the associated cookbook when known. |
 
 ## Frontend Usage
 
@@ -38,6 +40,8 @@ const rawYaml = await fetch(new URL(asset.rawPath, siteRoot)).then((result) =>
 ```
 
 Use `sourcePath` and `recipePath` to route users from a configuration asset back to its cookbook. Do not write real token values into generated YAML. Use secret references, environment variable names, or platform-specific secret bindings.
+
+Use `supportStatus` and `supportLabel` to show the same ownership expectation that appears on the cookbook page. New community submissions should show as `community-supported`; AI-generated beta cookbooks should not be presented as Splunk-maintained content.
 
 ## Schema Helper
 

@@ -2,6 +2,8 @@
 
 Use this section to propose, review, and add new implementation recipes. A recipe is not general product documentation. It is a scenario-specific runbook that helps a team deploy, validate, and operate one observability pattern.
 
+New external submissions are community-supported by default. AI-generated cookbooks must stay marked as experimental or beta until maintainers intentionally reclassify them.
+
 ## Start Here
 
 - [Recipe standard](recipe-standard.md): required structure for new first-party recipes and the review checklist for backend-rendered examples.

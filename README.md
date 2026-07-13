@@ -81,7 +81,7 @@ The generated directory is disposable and ignored by git. Do not edit generated 
 
 ## AI Assistant Preview
 
-The expandable AI advisor sidebar requires a server-side endpoint because a static GitHub Pages site cannot safely store an OpenAI API key.
+The expandable AI advisor sidebar requires a server-side endpoint because this site does not call OpenAI directly from static browser code.
 
 ```bash
 python scripts/render_examples_site.py --source splunk-opentelemetry-examples
@@ -91,7 +91,9 @@ python scripts/serve_scenario_assistant.py --port 8010
 
 Then open `http://127.0.0.1:8010/`.
 
-The server loads `OPENAI_API_KEY` from a local `.env` file when present, or from the shell environment. The assistant endpoint uses OpenAI embeddings over the generated examples knowledge base and the OpenAI Responses API to return cookbook recommendations with links. Without `OPENAI_API_KEY`, the site still renders and Browse cookbooks still works, but the AI advisor reports that the backend is unavailable.
+The server loads `OPENAI_API_KEY` from a local `.env` file when present, or from the shell environment. Users can also enter an OpenAI API key in the assistant form for one request. The key is kept only in the current page's memory until submit, sent only to the assistant endpoint for that request, not written to localStorage, sessionStorage, cookies, logs, generated files, or git, and cleared from the form after the request completes.
+
+The assistant endpoint uses OpenAI embeddings over the generated examples knowledge base and the OpenAI Responses API to return cookbook recommendations with links. Without either a server-side `OPENAI_API_KEY` or a per-request key, the site still renders and Browse cookbooks still works, but the AI advisor reports that a key is required.
 
 If the sidebar still reports that `OPENAI_API_KEY` is missing, stop the old server process and start it again. A server that was already running before `.env` was added will not reload the file automatically. Confirm the active backend with:
 
@@ -99,13 +101,29 @@ If the sidebar still reports that `OPENAI_API_KEY` is missing, stop the old serv
 curl http://127.0.0.1:8010/api/scenario-assistant/health
 ```
 
-The response should include `"openaiConfigured": true`.
+The response should include `"openaiConfigured": true` when the backend has a server-side key. It also includes `"acceptsRequestApiKey": true` when the backend accepts a one-request key from the form.
 
 ## Cookbooks
 
 Scenario cookbook content is generated from two backend categories: OpenTelemetry instrumentation examples and OpenTelemetry Collector examples. This repo should not store copied backend recipe Markdown as committed source.
 
 Renderer-owned pages remain committed here under `site-content/`. That includes the homepage scenario finder, local assistant, contribution standard, proposal workflow, and frontend catalog guidance.
+
+## Support Status Labels
+
+The renderer labels every cookbook so readers can distinguish source ownership:
+
+- `Maintained by Splunk`: rendered from the Splunk OpenTelemetry examples source set. Official Splunk documentation remains the product source of truth.
+- `Experimental / AI-generated`: generated with AI-assisted cookbook skills and intended as beta guidance that needs review before customer use.
+- `Community-supported`: submitted by users or contributors unless maintainers reclassify it.
+
+New community submissions should include this front matter in the backend `README.md`:
+
+```yaml
+---
+cookbook_status: community-supported
+---
+```
 
 ## GitHub Pages Deployment
 

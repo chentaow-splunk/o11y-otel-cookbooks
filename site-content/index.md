@@ -9,6 +9,30 @@ This site is a scenario index over runnable Splunk OpenTelemetry instrumentation
 
 The examples themselves come from the local `splunk-opentelemetry-examples` backend checkout at build time. This repository owns the navigation model, scenario finder, contribution flow, recipe standard, and generated catalogs that make those examples easier to use as implementation cookbooks.
 
+<div class="support-legend" aria-label="Cookbook support status legend">
+  <div>
+    <span class="support-pill support-pill--splunk-maintained">Maintained by Splunk</span>
+    <p>Rendered from the Splunk OpenTelemetry examples source set. Official Splunk documentation remains the product source of truth.</p>
+  </div>
+  <div>
+    <span class="support-pill support-pill--ai-generated-beta">Experimental / AI-generated</span>
+    <p>Generated with AI-assisted cookbook skills and validation checks. Review before customer use.</p>
+  </div>
+  <div>
+    <span class="support-pill support-pill--community-supported">Community-supported</span>
+    <p>Submitted by users or contributors and community-supported unless maintainers promote it.</p>
+  </div>
+</div>
+
+<div class="contribution-strip">
+  <div>
+    <strong>Missing a scenario?</strong>
+    <span>Submit a recipe proposal with scenario, installation instructions, and proposed YAML. New accepted submissions are classified as community-supported by default.</span>
+  </div>
+  <a class="proposal-primary" href="https://github.com/chentaow-splunk/o11y-otel-cookbooks/issues/new?template=recipe-proposal.yml">Submit community recipe</a>
+  <a class="proposal-secondary" href="contributing/propose-recipe/">Draft with standard</a>
+</div>
+
 <div class="scenario-home" data-scenario-home>
   <section class="scenario-finder" id="scenario-finder" aria-labelledby="scenario-finder-title">
     <div class="scenario-section-heading">
@@ -25,12 +49,14 @@ The examples themselves come from the local `splunk-opentelemetry-examples` back
     </label>
 
     <div class="scenario-chips" data-scenario-chips aria-label="Scenario categories"></div>
+    <div class="scenario-chips scenario-support-filter" data-support-chips aria-label="Cookbook support status"></div>
 
     <div class="scenario-table-wrap">
       <table class="scenario-table">
         <thead>
           <tr>
             <th scope="col">Scenario</th>
+            <th scope="col">Status</th>
             <th scope="col">Category</th>
             <th scope="col">Signals and terms</th>
           </tr>

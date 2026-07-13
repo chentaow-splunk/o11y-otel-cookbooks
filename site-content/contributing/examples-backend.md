@@ -18,6 +18,18 @@ chentaow-splunk/splunk-opentelemetry-examples
 
 The examples repository remains the source for runnable example bodies and example-local YAML. This repository owns navigation, page grouping, homepage search metadata, frontend catalogs, and production-readiness review standards.
 
+## Support Status
+
+The renderer assigns a support status to every generated cookbook:
+
+| Status | Source rule |
+| --- | --- |
+| `splunk-maintained` | Default for cookbooks rendered from the Splunk OpenTelemetry examples source set. |
+| `ai-generated-beta` | Assigned by renderer path rules for cookbooks generated with AI-assisted cookbook skills. |
+| `community-supported` | Assigned when a backend README contains `cookbook_status: community-supported` front matter. |
+
+The status is written into generated page banners, `assets/scenario-index.json`, and `assets/frontend/example-backend-catalog.yaml` so the website and product frontend can show consistent expectations.
+
 ## Local Render
 
 ```bash
@@ -38,7 +50,7 @@ python scripts/render_examples_site.py --source splunk-opentelemetry-examples
 | Output | Purpose |
 | --- | --- |
 | `.generated/docs/assets/scenario-index.json` | Searchable scenario metadata for instrumentation and Collector examples, used by the homepage finder and local assistant. |
-| `.generated/docs/assets/frontend/example-backend-catalog.yaml` | Frontend-readable catalog of YAML assets copied from the examples backend. |
+| `.generated/docs/assets/frontend/example-backend-catalog.yaml` | Frontend-readable catalog of YAML assets copied from the examples backend, including recipe support status when a YAML asset maps to a recipe. |
 | `.generated/docs/assets/example-backend/` | Published YAML assets copied from the examples backend. |
 | `.generated/docs/` | Disposable MkDocs input directory built from backend examples plus `site-content/`. |
 

@@ -72,6 +72,8 @@ def offline_recommendations(index: dict[str, Any], question: str, limit: int = 5
             "url": str(item.get("url") or ""),
             "sourcePath": str(item.get("sourcePath") or ""),
             "category": str(item.get("category") or ""),
+            "supportStatus": str(item.get("supportStatus") or ""),
+            "supportLabel": str(item.get("supportLabel") or ""),
             "why": "Offline token-overlap baseline used because no assistant server URL was supplied.",
         }
         for score, item in scored[:limit]
@@ -113,7 +115,7 @@ def evaluate_prompt(index: dict[str, Any], prompt: dict[str, Any], server_url: s
 
     expected_terms = {str(item).lower() for item in prompt.get("expected_terms", [])}
     combined = " ".join(
-        " ".join(str(rec.get(key) or "") for key in ["title", "url", "sourcePath", "category", "why"])
+        " ".join(str(rec.get(key) or "") for key in ["title", "url", "sourcePath", "category", "supportLabel", "why"])
         for rec in recommendations
     ).lower()
     if expected_terms and not any(term in combined for term in expected_terms):

@@ -1,4 +1,7 @@
 (function () {
+  const PROPOSAL_ISSUE_URL =
+    "https://github.com/chentaow-splunk/o11y-otel-cookbooks/issues/new?template=recipe-proposal.yml";
+
   function siteUrl(path) {
     const script = document.currentScript || document.querySelector('script[src$="scenario-assistant.js"]');
     const base = script && script.src ? script.src : window.location.href;
@@ -23,9 +26,11 @@
 
     const link = document.createElement("a");
     link.className = "header-recipe-action";
-    link.href = siteUrl("contributing/propose-recipe/");
-    link.textContent = "Propose recipe";
-    link.setAttribute("aria-label", "Propose a recipe for the examples backend");
+    link.href = PROPOSAL_ISSUE_URL;
+    link.textContent = "Submit recipe";
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.setAttribute("aria-label", "Submit a community-supported recipe proposal");
 
     const searchButton = header.querySelector('label[for="__search"]');
     const palette = header.querySelector('[data-md-component="palette"]');
@@ -59,6 +64,11 @@
             <span>Scenario</span>
             <textarea data-ai-input rows="5" placeholder="Example: I need minimum collector sizing for a Windows .NET app and an AKS PoC with gateway collectors." autocomplete="off"></textarea>
           </label>
+          <label class="ai-api-key-field">
+            <span>OpenAI API key for this request</span>
+            <input type="password" data-ai-api-key placeholder="Optional. Leave blank if the backend already has a key." autocomplete="off" autocapitalize="none" spellcheck="false" />
+            <small>Your key is kept only in this page's memory until you submit. This page does not store it in localStorage, sessionStorage, cookies, or the repository. If entered, it is sent only with this assistant request to the configured backend and then cleared from the form.</small>
+          </label>
           <button type="submit">Ask AI</button>
         </form>
 
@@ -84,13 +94,16 @@
   const browseState = {
     scenarios: [],
     categories: [],
+    supportStatuses: [],
     category: "all",
+    supportStatus: "all",
     query: "",
     showAll: false,
   };
 
   const browse = {
     chips: document.querySelector("[data-scenario-chips]"),
+    supportChips: document.querySelector("[data-support-chips]"),
     search: document.querySelector("[data-scenario-search]"),
     results: document.querySelector("[data-scenario-results]"),
     count: document.querySelector("[data-scenario-count]"),
@@ -102,6 +115,7 @@
   const ai = {
     form: aiRoot ? aiRoot.querySelector("[data-ai-form]") : null,
     input: aiRoot ? aiRoot.querySelector("[data-ai-input]") : null,
+    apiKey: aiRoot ? aiRoot.querySelector("[data-ai-api-key]") : null,
     answer: aiRoot ? aiRoot.querySelector("[data-ai-answer]") : null,
     status: aiRoot ? aiRoot.querySelector("[data-ai-status]") : null,
     buttons: aiRoot ? aiRoot.querySelectorAll("[data-ai-prompt]") : [],
@@ -125,6 +139,10 @@
       scenario.category,
       scenario.summary,
       scenario.sourcePath,
+      scenario.supportStatus,
+      scenario.supportLabel,
+      scenario.supportDescription,
+      scenario.supportSource,
       ...(scenario.tags || []),
     ].join(" ").toLowerCase();
   }
@@ -137,6 +155,9 @@
 
     return browseState.scenarios
       .filter((scenario) => browseState.category === "all" || scenario.category === browseState.category)
+      .filter(
+        (scenario) => browseState.supportStatus === "all" || scenario.supportStatus === browseState.supportStatus
+      )
       .filter((scenario) => {
         if (!terms.length) return true;
         const haystack = textForBrowse(scenario);
@@ -174,6 +195,42 @@
     });
   }
 
+  function supportClass(status) {
+    return String(status || "unknown").toLowerCase().replace(/[^a-z0-9-]/g, "");
+  }
+
+  function supportPill(item) {
+    const status = supportClass(item.supportStatus);
+    const label = item.supportLabel || "Unclassified";
+    const description = item.supportDescription || "";
+    return `<span class="support-pill support-pill--${escapeHtml(status)}" title="${escapeHtml(description)}">${escapeHtml(label)}</span>`;
+  }
+
+  function renderSupportChips() {
+    if (!browse.supportChips) return;
+
+    const chips = [
+      `<button class="scenario-chip is-active" type="button" data-support-status="all">All statuses</button>`,
+      ...browseState.supportStatuses.map((profile) => {
+        const status = profile.status || "";
+        const label = profile.label || status;
+        return `<button class="scenario-chip" type="button" data-support-status="${escapeHtml(status)}">${escapeHtml(label)}</button>`;
+      }),
+    ];
+
+    browse.supportChips.innerHTML = chips.join("");
+    browse.supportChips.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-support-status]");
+      if (!button) return;
+      browseState.supportStatus = button.dataset.supportStatus || "all";
+      browseState.showAll = false;
+      browse.supportChips
+        .querySelectorAll(".scenario-chip")
+        .forEach((chip) => chip.classList.toggle("is-active", chip === button));
+      renderResults();
+    });
+  }
+
   function renderResults() {
     if (!browse.results) return;
 
@@ -193,6 +250,7 @@
               <a class="scenario-title" href="${escapeHtml(scenario.url)}">${escapeHtml(scenario.title)}</a>
               <p>${escapeHtml(scenario.summary || scenario.sourcePath || "")}</p>
             </td>
+            <td>${supportPill(scenario)}</td>
             <td>${escapeHtml(scenario.category)}</td>
             <td><div class="scenario-tags">${tags}</div></td>
           </tr>`;
@@ -237,7 +295,7 @@
 
   function setAiBusy(isBusy) {
     if (ai.form) {
-      ai.form.querySelectorAll("button, textarea").forEach((element) => {
+      ai.form.querySelectorAll("button, textarea, input").forEach((element) => {
         element.disabled = isBusy;
       });
     }
@@ -256,6 +314,7 @@
             (item) => `
               <li>
                 <a href="${escapeHtml(cookbookUrl(item.url || "#"))}">${escapeHtml(item.title || "Untitled cookbook")}</a>
+                <span>${supportPill(item)}</span>
                 <span>${escapeHtml(item.category || item.sourcePath || "")}</span>
                 <p>${escapeHtml(item.why || "")}</p>
               </li>`
@@ -274,9 +333,17 @@
   async function askAi(question) {
     if (!aiRoot) return;
     const endpoint = aiRoot.dataset.assistantEndpoint || "/api/scenario-assistant";
+    const apiKey = ai.apiKey ? ai.apiKey.value.trim() : "";
+    const requestBody = { question };
+    if (apiKey) {
+      requestBody.apiKey = apiKey;
+    }
     setAiOpen(true);
     setAiBusy(true);
-    setAiStatus("Asking the OpenAI-backed advisor...", "pending");
+    setAiStatus(
+      apiKey ? "Asking the advisor with your per-request key..." : "Asking the OpenAI-backed advisor...",
+      "pending"
+    );
 
     try {
       const response = await fetch(endpointUrl(endpoint), {
@@ -284,7 +351,7 @@
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify(requestBody),
       });
 
       const payload = await response.json().catch(() => ({}));
@@ -304,6 +371,9 @@
       }
       setAiStatus("Assistant backend unavailable.", "error");
     } finally {
+      if (ai.apiKey) {
+        ai.apiKey.value = "";
+      }
       setAiBusy(false);
     }
   }
@@ -318,7 +388,9 @@
       const data = await response.json();
       browseState.scenarios = data.scenarios || [];
       browseState.categories = data.categories || [];
+      browseState.supportStatuses = data.supportStatuses || [];
       renderChips();
+      renderSupportChips();
       renderResults();
     } catch (error) {
       if (browse.count) {

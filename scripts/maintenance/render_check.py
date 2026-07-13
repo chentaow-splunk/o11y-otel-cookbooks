@@ -34,6 +34,11 @@ EXPECTED_CATEGORIES = {
     "OpenTelemetry Collector Examples",
     "OpenTelemetry Instrumentation Examples",
 }
+EXPECTED_SUPPORT_STATUSES = {
+    "splunk-maintained",
+    "ai-generated-beta",
+    "community-supported",
+}
 
 
 def page_exists(generated_docs: Path, url: str) -> bool:
@@ -75,6 +80,18 @@ def validate_index(generated_docs: Path) -> tuple[dict, list[Finding]]:
             )
         )
 
+    support_statuses = {str(item.get("status") or "") for item in index.get("supportStatuses") or []}
+    missing_support_statuses = EXPECTED_SUPPORT_STATUSES - support_statuses
+    if missing_support_statuses:
+        findings.append(
+            Finding(
+                "error",
+                str(SCENARIO_INDEX),
+                "Scenario index is missing expected support status definitions.",
+                detail=f"missing={sorted(missing_support_statuses)}",
+            )
+        )
+
     if index.get("generatedFrom") != EXPECTED_SOURCE_REPOSITORY:
         findings.append(
             Finding(
@@ -107,6 +124,26 @@ def validate_index(generated_docs: Path) -> tuple[dict, list[Finding]]:
                     str(SCENARIO_INDEX),
                     "Scenario source path is outside the rendered backend categories.",
                     detail=f"title={title!r} sourcePath={source_path!r}",
+                )
+            )
+        support_status = str(entry.get("supportStatus") or "").strip()
+        support_label = str(entry.get("supportLabel") or "").strip()
+        if support_status not in EXPECTED_SUPPORT_STATUSES:
+            findings.append(
+                Finding(
+                    "error",
+                    str(SCENARIO_INDEX),
+                    "Scenario has an unknown or missing supportStatus.",
+                    detail=f"title={title!r} supportStatus={support_status!r}",
+                )
+            )
+        if not support_label:
+            findings.append(
+                Finding(
+                    "error",
+                    str(SCENARIO_INDEX),
+                    "Scenario is missing supportLabel.",
+                    detail=f"title={title!r}",
                 )
             )
     return index, findings
@@ -155,6 +192,27 @@ def validate_catalog(generated_docs: Path) -> tuple[list[dict[str, str]], list[F
                         str(FRONTEND_CATALOG),
                         "Catalog recipePath does not resolve to a generated page.",
                         detail=f"sourcePath={source_path!r} recipePath={recipe_path!r}",
+                    )
+                )
+        if recipe_path:
+            support_status = entry.get("supportStatus", "")
+            support_label = entry.get("supportLabel", "")
+            if support_status and support_status not in EXPECTED_SUPPORT_STATUSES:
+                findings.append(
+                    Finding(
+                        "warning",
+                        str(FRONTEND_CATALOG),
+                        "Catalog entry has an unexpected supportStatus.",
+                        detail=f"sourcePath={source_path!r} supportStatus={support_status!r}",
+                    )
+                )
+            if not support_status or not support_label:
+                findings.append(
+                    Finding(
+                        "warning",
+                        str(FRONTEND_CATALOG),
+                        "Catalog entry with recipePath is missing support metadata.",
+                        detail=f"sourcePath={source_path!r}",
                     )
                 )
     return entries, findings
